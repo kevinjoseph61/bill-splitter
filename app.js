@@ -11,6 +11,7 @@ let state = {
 
 let nextPersonId = 1;
 let nextDishId = 1;
+let selectedDishId = null; // For tap-to-assign on mobile
 
 // DOM Elements
 const restaurantNameInput = document.getElementById('restaurantName');
@@ -39,6 +40,13 @@ const assignmentsGrid = document.getElementById('assignmentsGrid');
 const summaryContent = document.getElementById('summaryContent');
 const copyBtn = document.getElementById('copyBtn');
 const toast = document.getElementById('toast');
+
+// Modal elements
+const assignModal = document.getElementById('assignModal');
+const modalDishName = document.getElementById('modalDishName');
+const modalPeople = document.getElementById('modalPeople');
+const closeModalBtn = document.getElementById('closeModal');
+const modalDoneBtn = document.getElementById('modalDone');
 
 // Initialize
 function init() {
@@ -101,6 +109,13 @@ function init() {
 
     // Copy button
     copyBtn.addEventListener('click', copySummary);
+
+    // Modal listeners
+    closeModalBtn.addEventListener('click', closeModal);
+    modalDoneBtn.addEventListener('click', closeModal);
+    assignModal.addEventListener('click', (e) => {
+        if (e.target === assignModal) closeModal();
+    });
 }
 
 // Calculate final amount after cashback
@@ -249,23 +264,25 @@ function renderDishes() {
         const assignedText = sharedBy.length > 0 
             ? `Assigned to: ${sharedBy.join(', ')}` 
             : '';
+        const isSelected = selectedDishId === dish.id;
 
         return `
-            <div class="dish-item" draggable="true" data-dish-id="${dish.id}">
+            <div class="dish-item ${isSelected ? 'selected' : ''}" draggable="true" data-dish-id="${dish.id}">
                 <div class="dish-info">
                     <span class="dish-name">${escapeHtml(dish.name)}</span>
                     <span class="dish-price">₹${dish.price}</span>
                     ${assignedText ? `<span class="dish-assigned">${assignedText}</span>` : ''}
                 </div>
-                <button class="btn btn-danger" onclick="removeDish(${dish.id})">✕</button>
+                <button class="btn btn-danger" onclick="event.stopPropagation(); removeDish(${dish.id})">✕</button>
             </div>
         `;
     }).join('');
 
-    // Add drag listeners
+    // Add drag and click listeners
     document.querySelectorAll('.dish-item').forEach(item => {
         item.addEventListener('dragstart', handleDragStart);
         item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('click', handleDishClick);
     });
 }
 
@@ -407,6 +424,85 @@ function handleDrop(e) {
     }
 }
 
+// Handle dish click for mobile tap-to-assign
+function handleDishClick(e) {
+    // Don't trigger on button clicks
+    if (e.target.closest('.btn')) return;
+    
+    const dishId = parseInt(e.currentTarget.dataset.dishId);
+    const dish = state.dishes.find(d => d.id === dishId);
+    
+    if (!dish) return;
+    
+    if (state.people.length === 0) {
+        showToast('Add people first!');
+        return;
+    }
+    
+    // Open modal
+    openAssignModal(dish);
+}
+
+// Open assignment modal
+function openAssignModal(dish) {
+    selectedDishId = dish.id;
+    modalDishName.textContent = `${dish.name} - ₹${dish.price}`;
+    
+    // Render people checkboxes
+    modalPeople.innerHTML = state.people.map(person => {
+        const isAssigned = state.assignments[person.id]?.includes(dish.id);
+        return `
+            <div class="modal-person ${isAssigned ? 'selected' : ''}" data-person-id="${person.id}">
+                <div class="checkbox">${isAssigned ? '✓' : ''}</div>
+                <span class="person-label">${escapeHtml(person.name)}</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click listeners to modal people
+    document.querySelectorAll('.modal-person').forEach(item => {
+        item.addEventListener('click', handleModalPersonClick);
+    });
+    
+    assignModal.classList.add('show');
+    renderDishes(); // Update selection state
+}
+
+// Handle modal person click
+function handleModalPersonClick(e) {
+    const personId = parseInt(e.currentTarget.dataset.personId);
+    
+    if (!selectedDishId || !personId) return;
+    
+    const isAssigned = state.assignments[personId]?.includes(selectedDishId);
+    
+    if (isAssigned) {
+        // Unassign
+        state.assignments[personId] = state.assignments[personId].filter(id => id !== selectedDishId);
+        e.currentTarget.classList.remove('selected');
+        e.currentTarget.querySelector('.checkbox').textContent = '';
+    } else {
+        // Assign
+        if (!state.assignments[personId]) {
+            state.assignments[personId] = [];
+        }
+        state.assignments[personId].push(selectedDishId);
+        e.currentTarget.classList.add('selected');
+        e.currentTarget.querySelector('.checkbox').textContent = '✓';
+    }
+    
+    renderAssignments();
+    updateDishAssignmentInfo();
+    updateSummary();
+}
+
+// Close modal
+function closeModal() {
+    assignModal.classList.remove('show');
+    selectedDishId = null;
+    renderDishes(); // Clear selection state
+}
+
 // Update summary
 function updateSummary() {
     const dishesTotal = state.dishes.reduce((sum, dish) => sum + dish.price, 0);
@@ -442,23 +538,32 @@ function updateSummary() {
         const percentage = dishesTotal > 0 ? (personTotal / dishesTotal * 100) : 0;
         const personFinal = dishesTotal > 0 ? Math.round((personTotal / dishesTotal) * finalAmount) : 0;
 
-        const dishesText = assignedDishIds.map(dishId => {
+        const dishItems = assignedDishIds.map(dishId => {
             const dish = state.dishes.find(d => d.id === dishId);
-            if (!dish) return '';
+            if (!dish) return null;
             const sharedCount = countDishShares(dishId);
             const shareAmount = (dish.price / sharedCount).toFixed(2);
-            if (sharedCount > 1) {
-                return `₹${shareAmount} (${dish.name}) (/${sharedCount})`;
-            }
-            return `₹${shareAmount} (${dish.name})`;
-        }).filter(Boolean).join(' + ');
+            return {
+                name: dish.name,
+                amount: shareAmount,
+                shared: sharedCount > 1 ? sharedCount : null
+            };
+        }).filter(Boolean);
+
+        const dishesHtml = dishItems.length > 0 
+            ? dishItems.map(d => 
+                d.shared 
+                    ? `<span class="dish-chip">₹${d.amount} <small>(${d.name} ÷${d.shared})</small></span>`
+                    : `<span class="dish-chip">₹${d.amount} <small>(${d.name})</small></span>`
+            ).join(' + ')
+            : '<span class="no-dishes">No dishes assigned</span>';
 
         html += `
             <div class="summary-person">
                 <div class="summary-person-name">${escapeHtml(person.name)}</div>
-                <div class="summary-person-dishes">${dishesText || 'No dishes assigned'}</div>
+                <div class="summary-person-dishes">${dishesHtml}</div>
                 <div class="summary-person-total">
-                    <span>= ₹${personTotal.toFixed(2)} (${percentage.toFixed(1)}%)</span>
+                    <span>Subtotal: ₹${personTotal.toFixed(2)} (${percentage.toFixed(1)}%)</span>
                     <span class="summary-person-final">Pay: ₹${personFinal}</span>
                 </div>
             </div>

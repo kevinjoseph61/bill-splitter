@@ -81,6 +81,11 @@ header h1 {
     color: var(--text-muted);
 }
 
+.form-group label .required {
+    color: var(--danger);
+    font-weight: 700;
+}
+
 input[type="text"],
 input[type="number"] {
     padding: 12px 16px;
@@ -430,6 +435,26 @@ input:focus {
     font-size: 0.9rem;
     color: var(--text-muted);
     margin-bottom: 8px;
+    line-height: 1.8;
+}
+
+.summary-person-dishes .dish-chip {
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin: 2px 0;
+    white-space: nowrap;
+}
+
+.summary-person-dishes .dish-chip small {
+    color: var(--text-muted);
+    font-size: 0.8em;
+}
+
+.summary-person-dishes .no-dishes {
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 .summary-person-total {
@@ -472,14 +497,150 @@ input:focus {
     opacity: 1;
 }
 
+/* Mobile Assignment Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    background: white;
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-header h3 {
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.modal-hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.modal-people {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.modal-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.modal-person:hover {
+    background: #f1f5f9;
+}
+
+.modal-person.selected {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    border-color: var(--primary);
+}
+
+.modal-person .checkbox {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    transition: all 0.2s;
+}
+
+.modal-person.selected .checkbox {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.modal-person .person-label {
+    font-weight: 500;
+}
+
+.modal-done {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+}
+
+/* Selected dish state */
+.dish-item.selected {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Tap target for assignment zones */
+.assignment-zone.tap-target {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    cursor: pointer;
+}
+
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
     header h1 {
         font-size: 1.8rem;
     }
 
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
     .card {
         padding: 16px;
+        margin-bottom: 16px;
     }
 
     .add-person-form,
@@ -491,5 +652,113 @@ input:focus {
         flex-direction: column;
         gap: 12px;
         align-items: flex-start;
+    }
+
+    /* Larger touch targets */
+    .btn {
+        padding: 12px 20px;
+        font-size: 1rem;
+    }
+
+    .dish-item {
+        padding: 14px 16px;
+        cursor: pointer;
+    }
+
+    .person-item {
+        padding: 14px 16px;
+    }
+
+    /* Assignments grid - single column on mobile */
+    .assignments-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .assignment-zone {
+        min-height: 100px;
+        padding: 14px;
+    }
+
+    .zone-empty {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    /* Summary fixes for mobile */
+    .summary-content {
+        padding: 14px;
+    }
+
+    .summary-totals {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .summary-totals span {
+        width: 100%;
+        text-align: center;
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+
+    .summary-person {
+        padding: 14px;
+    }
+
+    .summary-person-name {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .summary-person-dishes {
+        font-size: 0.85rem;
+        line-height: 1.5;
+        word-break: break-word;
+        margin-bottom: 12px;
+    }
+
+    .summary-person-total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .summary-person-total span:first-child {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .summary-person-final {
+        font-size: 1.3rem;
+        align-self: flex-end;
+    }
+
+    /* Form grid single column */
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Toast positioning */
+    .toast {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        text-align: center;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 380px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .card h2 {
+        font-size: 1.1rem;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
     }
 }
