@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bill Splitter</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -36,6 +38,47 @@
             </div>
             <div class="calculated-info">
                 <span id="finalAmount">Final Amount: ₹0</span>
+            </div>
+        </section>
+
+        <!-- Bill Scanner Section -->
+        <section class="card scanner-section">
+            <div class="section-header">
+                <h2>📸 Scan Bill (Optional)</h2>
+            </div>
+            <div class="scan-tip">
+                <strong>💡 Tip:</strong> Take a clear photo of your bill. Works best with printed receipts.
+            </div>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <p>Drop bill image here or click to upload</p>
+                <small>Supports JPG, PNG, WEBP</small>
+                <input type="file" id="billInput" class="file-input" accept="image/*">
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <img id="imagePreview" class="image-preview" alt="Bill preview">
+                <div class="scan-actions">
+                    <button class="btn btn-primary" id="scanBtn">🔍 Scan Bill</button>
+                    <button class="btn btn-secondary" id="clearScanBtn">Clear</button>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Initializing...</p>
+            </div>
+
+            <div class="scan-results" id="scanResults">
+                <h3>Detected Items (edit if needed):</h3>
+                <div class="detected-items" id="detectedItems"></div>
+                <div class="results-actions">
+                    <button class="btn btn-success" id="addDetectedBtn">✓ Add Selected Items</button>
+                    <button class="btn btn-secondary" id="cancelResultsBtn">Cancel</button>
+                </div>
             </div>
         </section>
 

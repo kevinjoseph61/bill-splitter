@@ -762,3 +762,221 @@ input:focus {
         font-size: 0.9rem;
     }
 }
+
+/* Bill Scanner Styles */
+.scanner-section {
+    margin-bottom: 20px;
+}
+
+.scan-tip {
+    background: rgba(99, 102, 241, 0.1);
+    border-left: 4px solid var(--primary);
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.scan-tip strong {
+    color: var(--text);
+}
+
+.upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg);
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.upload-area.dragover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.upload-area p {
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.upload-area small {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.file-input {
+    display: none;
+}
+
+.preview-container {
+    display: none;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.preview-container.show {
+    display: flex;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.scan-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.progress-container {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.progress-container.show {
+    display: flex;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.scan-results {
+    display: none;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 16px;
+}
+
+.scan-results.show {
+    display: flex;
+}
+
+.scan-results h3 {
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.detected-items {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.detected-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+.detected-item:last-child {
+    border-bottom: none;
+}
+
+.detected-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.detected-item .item-name {
+    flex: 1;
+}
+
+.detected-item .item-price {
+    width: 80px;
+}
+
+.detected-item input[type="text"],
+.detected-item input[type="number"] {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.detected-item input[type="text"] {
+    flex: 1;
+    min-width: 100px;
+}
+
+.detected-item input[type="number"] {
+    width: 80px;
+}
+
+.results-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Mobile adjustments for scanner */
+@media (max-width: 768px) {
+    .upload-area {
+        padding: 20px;
+    }
+    
+    .upload-icon {
+        font-size: 36px;
+    }
+    
+    .detected-item {
+        flex-wrap: wrap;
+    }
+    
+    .detected-item input[type="text"] {
+        order: 1;
+        width: 100%;
+        margin-top: 8px;
+        flex: none;
+    }
+    
+    .detected-item input[type="number"] {
+        order: 2;
+        margin-top: 8px;
+    }
+
+    .detected-item input[type="checkbox"] {
+        order: 0;
+    }
+}

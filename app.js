@@ -48,6 +48,23 @@ const modalPeople = document.getElementById('modalPeople');
 const closeModalBtn = document.getElementById('closeModal');
 const modalDoneBtn = document.getElementById('modalDone');
 
+// Bill Scanner elements
+const uploadArea = document.getElementById('uploadArea');
+const billInput = document.getElementById('billInput');
+const previewContainer = document.getElementById('previewContainer');
+const imagePreview = document.getElementById('imagePreview');
+const scanBtn = document.getElementById('scanBtn');
+const clearScanBtn = document.getElementById('clearScanBtn');
+const progressContainer = document.getElementById('progressContainer');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const scanResults = document.getElementById('scanResults');
+const detectedItems = document.getElementById('detectedItems');
+const addDetectedBtn = document.getElementById('addDetectedBtn');
+const cancelResultsBtn = document.getElementById('cancelResultsBtn');
+
+let detectedDishes = [];
+
 // Initialize
 function init() {
     // Restaurant info listeners
@@ -116,6 +133,9 @@ function init() {
     assignModal.addEventListener('click', (e) => {
         if (e.target === assignModal) closeModal();
     });
+
+    // Bill Scanner listeners
+    initBillScanner();
 }
 
 // Calculate final amount after cashback
@@ -635,6 +655,258 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ============================================
+// BILL SCANNER FUNCTIONS
+// ============================================
+
+function initBillScanner() {
+    // Upload area click
+    uploadArea.addEventListener('click', () => billInput.click());
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleImageUpload(file);
+        }
+    });
+
+    // File input change
+    billInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleImageUpload(file);
+        }
+    });
+
+    // Scan button
+    scanBtn.addEventListener('click', scanBill);
+
+    // Clear button
+    clearScanBtn.addEventListener('click', resetScanner);
+
+    // Add detected items button
+    addDetectedBtn.addEventListener('click', addDetectedItems);
+
+    // Cancel results button
+    cancelResultsBtn.addEventListener('click', () => {
+        scanResults.classList.remove('show');
+        detectedDishes = [];
+    });
+}
+
+function handleImageUpload(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagePreview.src = e.target.result;
+        uploadArea.style.display = 'none';
+        previewContainer.classList.add('show');
+        scanResults.classList.remove('show');
+        progressContainer.classList.remove('show');
+    };
+    reader.readAsDataURL(file);
+}
+
+function resetScanner() {
+    uploadArea.style.display = 'block';
+    previewContainer.classList.remove('show');
+    progressContainer.classList.remove('show');
+    scanResults.classList.remove('show');
+    billInput.value = '';
+    imagePreview.src = '';
+    detectedDishes = [];
+}
+
+async function scanBill() {
+    scanBtn.disabled = true;
+    progressContainer.classList.add('show');
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Initializing OCR...';
+
+    try {
+        const result = await Tesseract.recognize(
+            imagePreview.src,
+            'eng',
+            {
+                logger: (m) => {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressFill.style.width = `${progress}%`;
+                        progressText.textContent = `Scanning... ${progress}%`;
+                    } else {
+                        progressText.textContent = m.status.charAt(0).toUpperCase() + m.status.slice(1) + '...';
+                    }
+                }
+            }
+        );
+
+        progressText.textContent = 'Processing results...';
+        const extractedItems = parseReceiptText(result.data.text);
+        
+        if (extractedItems.length === 0) {
+            showToast('No items detected. Try a clearer image.');
+            progressContainer.classList.remove('show');
+            scanBtn.disabled = false;
+            return;
+        }
+
+        detectedDishes = extractedItems;
+        displayDetectedItems(extractedItems);
+        progressContainer.classList.remove('show');
+        scanResults.classList.add('show');
+        showToast(`Found ${extractedItems.length} item(s)`);
+        
+    } catch (error) {
+        console.error('OCR Error:', error);
+        showToast('Error scanning bill. Please try again.');
+        progressContainer.classList.remove('show');
+    }
+    
+    scanBtn.disabled = false;
+}
+
+function parseReceiptText(text) {
+    const items = [];
+    const lines = text.split('\n');
+    
+    // Common patterns for receipt items
+    const pricePatterns = [
+        /^(.+?)\s+[\$₹€£]?\s*(\d+[.,]\d{2})\s*$/,           // Name followed by price with decimals
+        /^(.+?)\s+(\d+[.,]\d{2})\s*[\$₹€£]?\s*$/,           // Price with currency after
+        /^[\$₹€£]?\s*(\d+[.,]\d{2})\s+(.+)$/,               // Price before name
+        /^(\d+)\s*[xX]\s*(.+?)\s+[\$₹€£]?\s*(\d+[.,]\d{2})/, // Qty x Item Price
+        /^(.+?)\s{2,}(\d+)\s*$/,                             // Name with spaces then number (no decimal)
+        /^(.+?)\s+[\$₹€£]?\s*(\d+)\s*$/,                     // Name followed by whole number price
+    ];
+
+    for (let line of lines) {
+        line = line.trim();
+        if (!line || line.length < 3) continue;
+        
+        // Skip common non-item lines
+        const skipPatterns = [
+            /^(sub)?total/i,
+            /^tax/i,
+            /^tip/i,
+            /^thank/i,
+            /^change/i,
+            /^cash/i,
+            /^card/i,
+            /^date/i,
+            /^time/i,
+            /^server/i,
+            /^table/i,
+            /^order/i,
+            /^receipt/i,
+            /^tel/i,
+            /^phone/i,
+            /^address/i,
+            /^gst/i,
+            /^vat/i,
+            /^cgst/i,
+            /^sgst/i,
+            /^invoice/i,
+            /^bill\s*(no|number)?/i,
+            /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/, // Dates
+            /^\d{1,2}:\d{2}/, // Times
+            /^www\./i,
+            /^http/i,
+        ];
+        
+        let shouldSkip = false;
+        for (const pattern of skipPatterns) {
+            if (pattern.test(line)) {
+                shouldSkip = true;
+                break;
+            }
+        }
+        if (shouldSkip) continue;
+
+        // Try to match price patterns
+        for (const pattern of pricePatterns) {
+            const match = line.match(pattern);
+            if (match) {
+                let name, price;
+                
+                if (match.length === 4) {
+                    // Qty x Item Price pattern
+                    name = match[2].trim();
+                    price = parseFloat(match[3].replace(',', '.'));
+                } else if (match.length === 3) {
+                    // Check if first group is the price (starts with digit)
+                    if (/^\d/.test(match[1]) && !/^\d/.test(match[2])) {
+                        price = parseFloat(match[1].replace(',', '.'));
+                        name = match[2].trim();
+                    } else {
+                        name = match[1].trim();
+                        price = parseFloat(match[2].replace(',', '.'));
+                    }
+                }
+                
+                // Validate
+                if (name && name.length >= 2 && price && price > 0 && price < 100000) {
+                    // Clean up name - remove special characters but keep letters, numbers, spaces, hyphens
+                    name = name.replace(/[^\w\s\-&']/g, '').trim();
+                    if (name.length >= 2) {
+                        items.push({ name, price: Math.round(price * 100) / 100, selected: true });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return items;
+}
+
+function displayDetectedItems(items) {
+    detectedItems.innerHTML = items.map((item, index) => `
+        <div class="detected-item">
+            <input type="checkbox" id="item-${index}" ${item.selected ? 'checked' : ''} 
+                   onchange="detectedDishes[${index}].selected = this.checked">
+            <input type="text" class="item-name" value="${escapeHtml(item.name)}" 
+                   onchange="detectedDishes[${index}].name = this.value">
+            <input type="number" class="item-price" value="${item.price}" min="0" step="0.01"
+                   onchange="detectedDishes[${index}].price = parseFloat(this.value) || 0">
+        </div>
+    `).join('');
+}
+
+function addDetectedItems() {
+    const selectedItems = detectedDishes.filter(item => item.selected && item.name && item.price > 0);
+    
+    if (selectedItems.length === 0) {
+        showToast('No items selected');
+        return;
+    }
+
+    selectedItems.forEach(item => {
+        const dish = {
+            id: nextDishId++,
+            name: item.name,
+            price: item.price
+        };
+        state.dishes.push(dish);
+    });
+
+    renderDishes();
+    updateDishesTotal();
+    updateSummary();
+    resetScanner();
+    showToast(`Added ${selectedItems.length} dish(es)!`);
 }
 
 // Initialize the app
