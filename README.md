@@ -8,7 +8,7 @@ A simple, intuitive web app to split restaurant bills among friends based on wha
 
 ## ✨ Features
 
-- **📸 Bill Scanner** - Upload a photo of your bill and auto-detect dishes using OCR
+- **📸 Bill Scanner** - Upload/paste a photo of your bill and auto-detect dishes using OCR
 - **Mobile-Friendly** - Tap-to-assign interface optimized for touch screens
 - **Drag & Drop** - Drag dishes onto people on desktop
 - **Automatic Splitting** - Shared dishes automatically split costs equally
@@ -43,7 +43,7 @@ A simple, intuitive web app to split restaurant bills among friends based on wha
 - **Printed receipts** work better than handwritten bills
 - You can **edit detected items** before adding them
 - Works offline after initial page load
-- Best to crop the required items only from the bills so the OCR would function better
+- **Crop just the items** from the bill and paste for best results!
 
 ## 🛠️ Tech Stack
 
