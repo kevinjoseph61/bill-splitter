@@ -50,10 +50,15 @@ const modalDoneBtn = document.getElementById('modalDone');
 
 // Bill Scanner elements
 const uploadArea = document.getElementById('uploadArea');
+const uploadBtn = document.getElementById('uploadBtn');
+const cameraBtn = document.getElementById('cameraBtn');
 const billInput = document.getElementById('billInput');
+const cameraInput = document.getElementById('cameraInput');
 const previewContainer = document.getElementById('previewContainer');
+const cropContainer = document.getElementById('cropContainer');
 const imagePreview = document.getElementById('imagePreview');
-const scanBtn = document.getElementById('scanBtn');
+const cropBtn = document.getElementById('cropBtn');
+const scanFullBtn = document.getElementById('scanFullBtn');
 const clearScanBtn = document.getElementById('clearScanBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
@@ -64,6 +69,7 @@ const addDetectedBtn = document.getElementById('addDetectedBtn');
 const cancelResultsBtn = document.getElementById('cancelResultsBtn');
 
 let detectedDishes = [];
+let cropper = null;
 
 // Initialize
 function init() {
@@ -662,7 +668,13 @@ function escapeHtml(text) {
 // ============================================
 
 function initBillScanner() {
-    // Upload area click
+    // Upload button click
+    uploadBtn.addEventListener('click', () => billInput.click());
+    
+    // Camera button click
+    cameraBtn.addEventListener('click', () => cameraInput.click());
+    
+    // Upload area click (also opens file picker)
     uploadArea.addEventListener('click', () => billInput.click());
 
     // Drag and drop
@@ -692,6 +704,14 @@ function initBillScanner() {
         }
     });
 
+    // Camera input change
+    cameraInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleImageUpload(file);
+        }
+    });
+
     // Paste from clipboard (works anywhere on the page)
     document.addEventListener('paste', (e) => {
         const items = e.clipboardData?.items;
@@ -710,8 +730,11 @@ function initBillScanner() {
         }
     });
 
-    // Scan button
-    scanBtn.addEventListener('click', scanBill);
+    // Crop & Scan button
+    cropBtn.addEventListener('click', () => scanBill(true));
+    
+    // Scan full image button
+    scanFullBtn.addEventListener('click', () => scanBill(false));
 
     // Clear button
     clearScanBtn.addEventListener('click', resetScanner);
@@ -731,32 +754,87 @@ function handleImageUpload(file) {
     reader.onload = (e) => {
         imagePreview.src = e.target.result;
         uploadArea.style.display = 'none';
+        document.querySelector('.upload-buttons').style.display = 'none';
         previewContainer.classList.add('show');
         scanResults.classList.remove('show');
         progressContainer.classList.remove('show');
+        
+        // Initialize cropper after image loads
+        imagePreview.onload = () => {
+            initCropper();
+        };
     };
     reader.readAsDataURL(file);
 }
 
+function initCropper() {
+    // Destroy existing cropper if any
+    if (cropper) {
+        cropper.destroy();
+    }
+    
+    // Initialize Cropper.js
+    cropper = new Cropper(imagePreview, {
+        aspectRatio: NaN, // Free aspect ratio
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 0.8,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: true,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
+        ready: function() {
+            // Add some initial instructions
+        }
+    });
+}
+
 function resetScanner() {
+    // Destroy cropper
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    
     uploadArea.style.display = 'block';
+    document.querySelector('.upload-buttons').style.display = 'flex';
     previewContainer.classList.remove('show');
     progressContainer.classList.remove('show');
     scanResults.classList.remove('show');
     billInput.value = '';
+    cameraInput.value = '';
     imagePreview.src = '';
     detectedDishes = [];
 }
 
-async function scanBill() {
-    scanBtn.disabled = true;
+async function scanBill(useCrop = true) {
+    let imageToScan;
+    
+    if (useCrop && cropper) {
+        // Get cropped canvas
+        const canvas = cropper.getCroppedCanvas({
+            maxWidth: 2000,
+            maxHeight: 2000,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        imageToScan = canvas.toDataURL('image/png');
+    } else {
+        imageToScan = imagePreview.src;
+    }
+    
+    cropBtn.disabled = true;
+    scanFullBtn.disabled = true;
     progressContainer.classList.add('show');
     progressFill.style.width = '0%';
     progressText.textContent = 'Initializing OCR...';
 
     try {
         const result = await Tesseract.recognize(
-            imagePreview.src,
+            imageToScan,
             'eng',
             {
                 logger: (m) => {
@@ -775,9 +853,10 @@ async function scanBill() {
         const extractedItems = parseReceiptText(result.data.text);
         
         if (extractedItems.length === 0) {
-            showToast('No items detected. Try a clearer image.');
+            showToast('No items detected. Try cropping to just the items area.');
             progressContainer.classList.remove('show');
-            scanBtn.disabled = false;
+            cropBtn.disabled = false;
+            scanFullBtn.disabled = false;
             return;
         }
 
@@ -793,7 +872,8 @@ async function scanBill() {
         progressContainer.classList.remove('show');
     }
     
-    scanBtn.disabled = false;
+    cropBtn.disabled = false;
+    scanFullBtn.disabled = false;
 }
 
 function parseReceiptText(text) {
@@ -874,10 +954,16 @@ function parseReceiptText(text) {
                     }
                 }
                 
+                // Clean up name - remove special characters but keep letters, numbers, spaces, hyphens
+                if (name) {
+                    name = name.replace(/[^\w\s\-&']/g, '').trim();
+                    // Remove trailing quantity (e.g., "Onion Samosa 2" -> "Onion Samosa")
+                    // Match trailing space followed by 1-2 digit number at end
+                    name = name.replace(/\s+\d{1,2}$/, '').trim();
+                }
+                
                 // Validate
                 if (name && name.length >= 2 && price && price > 0 && price < 100000) {
-                    // Clean up name - remove special characters but keep letters, numbers, spaces, hyphens
-                    name = name.replace(/[^\w\s\-&']/g, '').trim();
                     if (name.length >= 2) {
                         items.push({ name, price: Math.round(price * 100) / 100, selected: true });
                         break;

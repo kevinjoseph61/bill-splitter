@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bill Splitter</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Cropper.js for image cropping -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -50,17 +53,28 @@
                 <strong>💡 Tip:</strong> Take a clear photo of your bill. Works best with printed receipts.
             </div>
             
+            <div class="upload-buttons">
+                <button class="btn btn-primary upload-btn" id="uploadBtn">📁 Upload Image</button>
+                <button class="btn btn-primary upload-btn" id="cameraBtn">📷 Take Photo</button>
+            </div>
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📄</div>
-                <p>Drop image, click to upload, or <strong>Ctrl+V</strong> to paste. Crop just the items from the bill and paste for best results</p>
+                <p>Drop image here or <strong>Ctrl+V</strong> to paste</p>
                 <small>Supports JPG, PNG, WEBP</small>
                 <input type="file" id="billInput" class="file-input" accept="image/*">
+                <input type="file" id="cameraInput" class="file-input" accept="image/*" capture="environment">
             </div>
 
             <div class="preview-container" id="previewContainer">
-                <img id="imagePreview" class="image-preview" alt="Bill preview">
+                <div class="crop-container" id="cropContainer">
+                    <img id="imagePreview" class="image-preview" alt="Bill preview">
+                </div>
+                <div class="crop-hint">
+                    <strong>✂️ Crop to items only</strong> - Drag to select the area with dish names and prices for better accuracy
+                </div>
                 <div class="scan-actions">
-                    <button class="btn btn-primary" id="scanBtn">🔍 Scan Bill</button>
+                    <button class="btn btn-success" id="cropBtn">✂️ Crop & Scan</button>
+                    <button class="btn btn-primary" id="scanFullBtn">🔍 Scan Full Image</button>
                     <button class="btn btn-secondary" id="clearScanBtn">Clear</button>
                 </div>
             </div>

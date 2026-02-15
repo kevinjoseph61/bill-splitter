@@ -782,6 +782,19 @@ input:focus {
     color: var(--text);
 }
 
+.upload-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.upload-btn {
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+}
+
 .upload-area {
     border: 2px dashed var(--border);
     border-radius: var(--radius);
@@ -831,12 +844,42 @@ input:focus {
     display: flex;
 }
 
-.image-preview {
-    max-width: 100%;
-    max-height: 300px;
-    object-fit: contain;
+.crop-container {
+    max-height: 400px;
+    overflow: hidden;
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    background: #000;
+}
+
+.image-preview {
+    max-width: 100%;
+    display: block;
+}
+
+.crop-hint {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-left: 4px solid var(--warning);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+    color: #92400e;
+}
+
+/* Cropper.js customization */
+.cropper-view-box,
+.cropper-face {
+    border-radius: 4px;
+}
+
+.cropper-line {
+    background-color: var(--primary);
+}
+
+.cropper-point {
+    background-color: var(--primary);
+    width: 10px;
+    height: 10px;
 }
 
 .scan-actions {
